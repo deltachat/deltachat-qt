@@ -5,6 +5,7 @@ import deltachat
 import deltachat.message
 from PyQt5.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QLineEdit, QTextEdit, QWidget, QListWidget, QListWidgetItem
 from PyQt5.QtCore import QThread, QObject, pyqtSignal, pyqtSlot, pyqtRemoveInputHook, Qt
+from PyQt5.QtGui import QTextCursor
 
 
 class EventConsumer(QObject):
@@ -100,9 +101,11 @@ class MainWindow(QWidget):
             self.on_incoming_message(message)
 
     def _display(self, user, text):
+        self._text_edit.moveCursor(QTextCursor.End)
         self._text_edit.insertPlainText(f'\n<{user}> {text}')
 
     def _display_image(self, filename):
+        self._text_edit.moveCursor(QTextCursor.End)
         self._text_edit.insertHtml(f'<img src="{filename}" width="100"></img>')
 
     def _scroll_to_bottom(self):
