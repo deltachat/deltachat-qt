@@ -3,8 +3,8 @@ import collections
 
 import deltachat
 import deltachat.message
-from PyQt5.QtWidgets import QApplication, QVBoxLayout, QLineEdit, QTextEdit, QWidget
-from PyQt5.QtCore import QThread, QObject, pyqtSignal, pyqtSlot, pyqtRemoveInputHook
+from PyQt5.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QLineEdit, QTextEdit, QWidget, QListWidget, QListWidgetItem
+from PyQt5.QtCore import QThread, QObject, pyqtSignal, pyqtSlot, pyqtRemoveInputHook, Qt
 
 
 class EventConsumer(QObject):
@@ -66,6 +66,8 @@ class MainWindow(QWidget):
     def __init__(self, account, parent=None):
         super().__init__(parent)
         self._account = account
+
+        self._hbox = QHBoxLayout(self)
         self._vbox = QVBoxLayout(self)
 
         self._text_edit = QTextEdit()
@@ -76,20 +78,37 @@ class MainWindow(QWidget):
         self._line_edit.editingFinished.connect(self.on_editing_finished)
         self._vbox.addWidget(self._line_edit)
 
-        # addr = "t2@testrun.org"
-        addr = "holger@deltachat.de"
-        self._contact = self._account.create_contact(addr)
-        self._chat = self._account.create_chat_by_contact(self._contact)
+        self._chat_list = QListWidget()
+        self._init_chat_list()
+        self._chat_list.currentItemChanged.connect(self._on_chatlist_item_changed)
+        self._chat = None
+
+        self._hbox.addWidget(self._chat_list)
+        self._hbox.addLayout(self._vbox, 1)
+
+    def _init_chat_list(self):
+        for chat in self._account.get_chats():
+            item = QListWidgetItem(chat.get_name())
+            item.setData(Qt.UserRole, chat)
+            self._chat_list.addItem(item)
+
+    @pyqtSlot(QListWidgetItem)
+    def _on_chatlist_item_changed(self, new):
+        self._text_edit.clear()
+        self._chat = new.data(Qt.UserRole)
         for message in self._chat.get_messages():
             self.on_incoming_message(message)
 
     def _display(self, user, text):
         self._text_edit.insertPlainText(f'\n<{user}> {text}')
+        bar = self._text_edit.verticalScrollBar()
+        bar.setValue(bar.maximum())
 
     @pyqtSlot(deltachat.message.Message)
     def on_incoming_message(self, message):
         contact = message.get_sender_contact()
-        self._display(contact.addr, message.text)
+        if message.chat == self._chat:
+            self._display(contact.addr, message.text)
 
     @pyqtSlot()
     def on_editing_finished(self):
