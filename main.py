@@ -101,6 +101,13 @@ class MainWindow(QWidget):
 
     def _display(self, user, text):
         self._text_edit.insertPlainText(f'\n<{user}> {text}')
+        self._scroll_to_bottom()
+
+    def _display_image(self, user, filename):
+        self._text_edit.insertHtml(f'<br>&lt;{user}&gt; <img src="{filename}" width="100"></img>')
+        self._scroll_to_bottom()
+
+    def _scroll_to_bottom(self):
         bar = self._text_edit.verticalScrollBar()
         bar.setValue(bar.maximum())
 
@@ -108,7 +115,11 @@ class MainWindow(QWidget):
     def on_incoming_message(self, message):
         contact = message.get_sender_contact()
         if message.chat == self._chat:
-            self._display(contact.addr, message.text)
+            if message.is_image():
+                self._display_image(contact.addr, message.filename)
+            else:
+                self._display(contact.addr, message.text)
+            self._account.mark_seen_messages([message])
 
     @pyqtSlot()
     def on_editing_finished(self):
